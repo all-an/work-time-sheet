@@ -1,0 +1,2 @@
+-r requirements.txt
+# Dev-only dependencies. Tests use the standard library unittest.
