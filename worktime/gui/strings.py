@@ -1,0 +1,60 @@
+"""Every user-visible text of the app, in one place."""
+
+APP_TITLE = "Work Time Sheet"
+
+TAB_DAILY = "Daily entries"
+
+LABEL_YEAR = "Year"
+LABEL_MONTH = "Month"
+BUTTON_PREVIOUS = "◀"
+BUTTON_NEXT = "▶"
+BUTTON_TODAY = "Today"
+BUTTON_EDIT = "Edit day"
+BUTTON_DELETE = "Delete day"
+BUTTON_SAVE = "Save"
+BUTTON_CANCEL = "Cancel"
+
+COLUMN_DATE = "Date"
+COLUMN_DAY = "Day"
+COLUMN_ARRIVAL = "Arrival"
+COLUMN_LUNCH_OUT = "Lunch out"
+COLUMN_LUNCH_IN = "Lunch in"
+COLUMN_DEPARTURE = "Departure"
+COLUMN_SITE = "On-site"
+COLUMN_WORKED = "Worked"
+COLUMN_DEBT = "Debt"
+COLUMN_EXCEEDING = "Exceeding"
+COLUMN_NOTE = "Note"
+
+YES = "yes"
+NO = "no"
+OPEN_DAY = "open"
+
+FORM_TITLE_NEW = "New day"
+FORM_TITLE_EDIT = "Edit day"
+FIELD_DATE = "Date (dd/mm/yyyy)"
+FIELD_ARRIVAL = "Arrival (HH:MM)"
+FIELD_LUNCH_OUT = "Lunch out (HH:MM)"
+FIELD_LUNCH_IN = "Lunch in (HH:MM)"
+FIELD_DEPARTURE = "Departure (HH:MM)"
+FIELD_REQUIRED = "Required hours (HH:MM)"
+FIELD_ON_SITE = "Worked on-site (presencial)"
+FIELD_EXACT = "Exact times (not approximate)"
+FIELD_NOTE = "Note"
+
+PREVIEW_INCOMPLETE = "Incomplete day: not counted in totals yet"
+PREVIEW_TEMPLATE = "Worked {worked}   Debt {debt}   Exceeding {exceeding}"
+
+CONFIRM_DELETE_TITLE = "Delete day"
+CONFIRM_DELETE = "Delete {date}? This cannot be undone."
+ERROR_TITLE = "Cannot save"
+NOTHING_SELECTED = "Select a day first."
+
+TOTALS_TEMPLATE = (
+    "{month} {year}:  {days} days worked ({onsite} on-site, {remote} remote)   "
+    "On-site {percent}   Worked {worked}   Debt {debt}   Exceeding {exceeding}   "
+    "Balance {balance}"
+)
+TARGET_MET = "Target {target}% met (can still add {spare} remote day(s))"
+TARGET_NOT_MET = "Target {target}% not met (need {needed} more on-site day(s))"
+TARGET_NO_DAYS = "Target {target}%: no completed days yet"

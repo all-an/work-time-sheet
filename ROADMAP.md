@@ -35,21 +35,21 @@ Pure logic, no GUI and no database (`calc.py`, `models.py`).
 
 **You run:** tests, plus a demo that prints a summary for a hard-coded list of days.
 
-## Step 3 - SQLite storage and migrations  `[ ]`
+## Step 3 - SQLite storage and migrations  `[x]`
 `db.py` plus `worktime/migrations/` (the schema, including stored worked/debt/exceeding columns, and the data from your old sheets are already written and tested; the xlsx files have been deleted).
 - Migration runner using `PRAGMA user_version`: applies `0001_create_entries.sql` and `0002_seed_2026_sheet_data.sql` to a new `db.sqlite3`.
 - Add/edit/delete/list entries, query by date range.
 
-**You run:** tests (in-memory DB), then a small terminal command that creates `db.sqlite3` and lists the 32 seeded days (Sep-Oct 2026).
+**You run:** tests (in-memory DB), then `python -m worktime.list_days`, which creates `db.sqlite3` and lists the 32 seeded days (Sep-Oct 2026).
 
-## Step 4 - Check the seeded data  `[ ]`
+## Step 4 - Check the seeded data  `[x]`
 No Excel import: the sheet data is already a migration. This step is a review.
 - Print the seeded days with worked, debt and exceeding per day, and the Sep and Oct totals.
 - You compare with your sheets and tell me what to correct (1 Oct 2026 conflict, 22 Sep arrival 11:38, 21 Oct still open). Corrections go in a new migration.
 
 **You run:** `python -m worktime.report_seed` and compare the totals.
 
-## Step 5 - First window: year / month / days navigation  `[ ]`
+## Step 5 - First window: year / month / days navigation  `[x]`
 Tkinter main window where you navigate **year -> month -> days** to enter data.
 - Year and month selectors at the top (previous/next arrows plus pickers); the days of the chosen month are listed below, one row per calendar day (weekends visually muted).
 - Clicking a day opens the add/edit form (date, 4 times, required hours, on-site, real/approximate, note).

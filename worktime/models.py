@@ -21,6 +21,29 @@ class DaySummary:
 
 
 @dataclass(frozen=True)
+class Entry:
+    """One row of the entries table. Times are 'HH:MM' text or None.
+
+    worked_minutes, debt_minutes and exceeding_minutes are calculated by the
+    database; they are filled when an entry is read and ignored when written.
+    """
+
+    work_date: date
+    arrival: Optional[str] = None
+    lunch_out: Optional[str] = None
+    lunch_in: Optional[str] = None
+    departure: Optional[str] = None
+    required_minutes: int = 480
+    on_site: bool = False
+    exact_times: bool = True
+    note: Optional[str] = None
+    id: Optional[int] = None
+    worked_minutes: Optional[int] = None
+    debt_minutes: Optional[int] = None
+    exceeding_minutes: Optional[int] = None
+
+
+@dataclass(frozen=True)
 class DayRecord:
     """One calculated day plus the data needed to build period summaries."""
 

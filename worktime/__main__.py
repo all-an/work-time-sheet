@@ -1,9 +1,9 @@
 """Entry point: python -m worktime"""
-from worktime import __version__
+from worktime.gui.app import run
 
 
 def main() -> None:
-    print(f"work-time-sheet v{__version__}")
+    run()
 
 
 if __name__ == "__main__":
