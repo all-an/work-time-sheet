@@ -10,6 +10,7 @@ from typing import Optional, Union
 
 from worktime import __version__, db
 from worktime.gui import logic, strings
+from worktime.gui.dashboard import Dashboard
 from worktime.gui.entry_form import EntryForm
 from worktime.gui.sqlite_editor import SqliteEditor
 from worktime.periods import MIN_ONSITE_PERCENT, month_range, summarize
@@ -60,6 +61,8 @@ class MainWindow:
         self._build_navigation(daily)
         self._build_table(daily)
         self._build_footer(daily)
+        self._dashboard = Dashboard(notebook, self._repo)
+        notebook.add(self._dashboard, text=strings.TAB_DASHBOARD)
         self.refresh()
 
     # -- layout -----------------------------------------------------------
@@ -131,6 +134,7 @@ class MainWindow:
         totals, target = logic.totals_text(summarize(records, start, end), MIN_ONSITE_PERCENT)
         self._totals.set(totals)
         self._target.set(target)
+        self._dashboard.refresh()
         if select is not None and self._tree.exists(select.isoformat()):
             self._tree.selection_set(select.isoformat())
             self._tree.see(select.isoformat())

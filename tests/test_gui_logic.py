@@ -181,3 +181,79 @@ class BuildEntryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DashboardLogicTests(unittest.TestCase):
+    def setUp(self):
+        self.entries = seeded_entries()
+        self.records = [db.to_day_record(e) for e in self.entries]
+
+    def test_period_bounds(self):
+        day = date(2026, 10, 21)
+        self.assertEqual(logic.period_bounds(logic.PERIOD_MONTH, day), (date(2026, 10, 1), date(2026, 10, 31)))
+        self.assertEqual(logic.period_bounds(logic.PERIOD_SEMESTER, day), (date(2026, 7, 1), date(2026, 12, 31)))
+        self.assertEqual(logic.period_bounds(logic.PERIOD_SEMESTER, date(2026, 6, 30)),
+                         (date(2026, 1, 1), date(2026, 6, 30)))
+        self.assertEqual(logic.period_bounds(logic.PERIOD_YEAR, day), (date(2026, 1, 1), date(2026, 12, 31)))
+        with self.assertRaises(ValueError):
+            logic.period_bounds("decade", day)
+
+    def test_period_title(self):
+        self.assertEqual(logic.period_title(logic.PERIOD_MONTH, date(2026, 10, 1)), "October 2026")
+        self.assertEqual(logic.period_title(logic.PERIOD_SEMESTER, date(2026, 7, 1)), "Jul-Dec 2026")
+        self.assertEqual(logic.period_title(logic.PERIOD_SEMESTER, date(2026, 1, 1)), "Jan-Jun 2026")
+        self.assertEqual(logic.period_title(logic.PERIOD_YEAR, date(2026, 1, 1)), "2026")
+
+    def test_pie_slices_half_and_half(self):
+        a, b = logic.pie_slices([("on-site", 5), ("remote", 5)])
+        self.assertEqual((a.percent, b.percent), (50.0, 50.0))
+        self.assertEqual((a.start, a.extent), (90.0, -180.0))
+        self.assertEqual((b.start, b.extent), (-90.0, -180.0))
+
+    def test_pie_slices_cover_the_whole_circle(self):
+        slices = logic.pie_slices([("a", 7), ("b", 11), ("c", 5)])
+        self.assertAlmostEqual(sum(s.extent for s in slices), -360.0)
+        self.assertAlmostEqual(sum(s.percent for s in slices), 100.0)
+        self.assertAlmostEqual(slices[0].extent, -360.0 * 7 / 23)
+
+    def test_pie_slices_with_one_value_or_none(self):
+        only, empty = logic.pie_slices([("a", 4), ("b", 0)])
+        self.assertEqual((only.percent, only.extent, empty.extent), (100.0, -360.0, 0.0))
+        for s in logic.pie_slices([("a", 0), ("b", 0)]):
+            self.assertEqual((s.percent, s.extent), (0.0, 0.0))
+
+    def test_stats_for_october_by_hand(self):
+        s = summarize(self.records, date(2026, 10, 1), date(2026, 10, 31))
+        stats = dict(logic.stats_lines(s, 50))
+        self.assertEqual(stats["Days worked"], "13")
+        self.assertEqual(stats["On-site days"], "5")
+        self.assertEqual(stats["Remote days"], "8")
+        self.assertEqual(stats["On-site percentage"], "38.5%")
+        self.assertEqual(stats["Worked"], "103h05")
+        self.assertEqual(stats["Debt"], "6h11")
+        self.assertEqual(stats["Exceeding"], "5h16")
+        self.assertEqual(stats["Net balance"], "-0h55")
+        self.assertIn("not met", stats["On-site target"])
+
+    def test_semester_totals_by_hand(self):
+        # Sep + Oct: 31 days, 12 on-site (38.7%), 14851 min = 247h31, debt 723 = 12h03,
+        # exceeding 694 = 11h34, balance -29
+        start, end = logic.period_bounds(logic.PERIOD_SEMESTER, date(2026, 10, 1))
+        stats = dict(logic.stats_lines(summarize(self.records, start, end), 50))
+        self.assertEqual(stats["Days worked"], "31")
+        self.assertEqual(stats["On-site days"], "12")
+        self.assertEqual(stats["On-site percentage"], "38.7%")
+        self.assertEqual(stats["Worked"], "247h31")
+        self.assertEqual(stats["Debt"], "12h03")
+        self.assertEqual(stats["Exceeding"], "11h34")
+        self.assertEqual(stats["Net balance"], "-0h29")
+
+    def test_breakdown_has_one_row_per_month(self):
+        rows = logic.month_breakdown(self.records, date(2026, 7, 1), date(2026, 12, 31), 50)
+        self.assertEqual(len(rows), 6)
+        self.assertEqual(rows[0], ("July 2026", "0", "0 / 0", "n/a", "0h00", "0h00", "0h00", "0h00"))
+        self.assertEqual(rows[2], ("September 2026", "18", "7 / 11", "38.9%", "144h26", "5h52", "6h18", "0h26"))
+        self.assertEqual(rows[3], ("October 2026", "13", "5 / 8", "38.5%", "103h05", "6h11", "5h16", "-0h55"))
+        year_rows = logic.month_breakdown(self.records, date(2026, 1, 1), date(2026, 12, 31), 50)
+        self.assertEqual(len(year_rows), 12)
+        self.assertEqual(len(logic.month_breakdown(self.records, date(2026, 10, 1), date(2026, 10, 31), 50)), 1)

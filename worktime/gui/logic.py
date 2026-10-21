@@ -12,7 +12,8 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from worktime.calc import DEFAULT_REQUIRED_MINUTES, calculate_day, format_minutes, parse_hhmm
 from worktime.gui import strings
-from worktime.models import Entry, PeriodSummary
+from worktime.models import DayRecord, Entry, PeriodSummary
+from worktime.periods import month_range, semester_range, summarize, year_range
 
 _LOOSE_TIME = re.compile(r"^(\d{1,2}):(\d{2})$")
 
@@ -208,3 +209,99 @@ def build_entry(
     )
     calculate_day(*times, entry.required_minutes)  # checks the order of the times
     return entry
+
+
+# -- dashboard ------------------------------------------------------------
+
+PERIOD_MONTH = "month"
+PERIOD_SEMESTER = "semester"
+PERIOD_YEAR = "year"
+SEMESTER_FIRST_MONTHS = (1, 7)  # Jan-Jun starts in month 1, Jul-Dec in month 7
+
+
+def period_bounds(kind: str, day: date) -> Tuple[date, date]:
+    """First and last day of the month, semester or year that contains `day`."""
+    if kind == PERIOD_MONTH:
+        return month_range(day)
+    if kind == PERIOD_SEMESTER:
+        return semester_range(day)
+    if kind == PERIOD_YEAR:
+        return year_range(day)
+    raise ValueError(f"Unknown period kind {kind!r}")
+
+
+def period_title(kind: str, start: date) -> str:
+    """'October 2026', 'Jul-Dec 2026' or '2026'."""
+    if kind == PERIOD_MONTH:
+        return f"{calendar.month_name[start.month]} {start.year}"
+    if kind == PERIOD_SEMESTER:
+        first, last = (1, 6) if start.month <= 6 else (7, 12)
+        return f"{calendar.month_abbr[first]}-{calendar.month_abbr[last]} {start.year}"
+    return str(start.year)
+
+
+@dataclass(frozen=True)
+class PieSlice:
+    """One slice of a pie chart. Angles are in degrees for Tk: start 90 is the top,
+    a negative extent goes clockwise."""
+
+    label: str
+    value: int
+    percent: float
+    start: float
+    extent: float
+
+
+def pie_slices(parts: List[Tuple[str, int]]) -> List[PieSlice]:
+    """Split a circle in proportion to the values, clockwise from the top.
+
+    A zero total gives slices with no extent (nothing to draw).
+    """
+    total = sum(value for _, value in parts)
+    slices = []
+    start = 90.0
+    for label, value in parts:
+        percent = value * 100 / total if total else 0.0
+        extent = -360.0 * value / total if total else 0.0
+        slices.append(PieSlice(label, value, percent, start, extent))
+        start += extent
+    return slices
+
+
+def stats_lines(summary: PeriodSummary, target_percent: int) -> List[Tuple[str, str]]:
+    """(label, value) pairs for the dashboard cards."""
+    percent = "n/a" if summary.onsite_percent is None else f"{summary.onsite_percent:.1f}%"
+    return [
+        (strings.STAT_DAYS, str(summary.days_worked)),
+        (strings.STAT_ONSITE, str(summary.onsite_days)),
+        (strings.STAT_REMOTE, str(summary.remote_days)),
+        (strings.STAT_PERCENT, percent),
+        (strings.STAT_TARGET, totals_text(summary, target_percent)[1]),
+        (strings.STAT_WORKED, format_minutes(summary.worked)),
+        (strings.STAT_DEBT, format_minutes(summary.debt)),
+        (strings.STAT_EXCEEDING, format_minutes(summary.exceeding)),
+        (strings.STAT_BALANCE, format_minutes(summary.balance)),
+    ]
+
+
+def month_breakdown(
+    records: List[DayRecord], start: date, end: date, target_percent: int
+) -> List[Tuple[str, ...]]:
+    """One table row per calendar month between start and end (inclusive)."""
+    rows = []
+    year, month = start.year, start.month
+    while (year, month) <= (end.year, end.month):
+        first, last = month_range(date(year, month, 1))
+        s = summarize(records, first, last, target_percent)
+        rows.append((
+            f"{calendar.month_name[month]} {year}",
+            str(s.days_worked),
+            f"{s.onsite_days} / {s.remote_days}",
+            "n/a" if s.onsite_percent is None else f"{s.onsite_percent:.1f}%",
+            format_minutes(s.worked),
+            format_minutes(s.debt),
+            format_minutes(s.exceeding),
+            format_minutes(s.balance),
+        ))
+        year, month = shift_month(year, month, 1)
+    return rows
