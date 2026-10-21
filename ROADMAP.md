@@ -58,6 +58,9 @@ Tkinter main window where you navigate **year -> month -> days** to enter data.
 
 **You run:** `python -m worktime`, pick Oct 2026 and enter or edit a day.
 
+## Step 5a - Sqlite Editor button  `[x]`
+"Sqlite Editor" button in the main window: run SELECT/UPDATE/other SQL on the program database or on another `.sqlite` file, and load a `.sql` file into the editor. Writes ask for confirmation, a script runs in one transaction (all or nothing), and the day table reloads after a change.
+
 ## Step 5b - Modern day grid for typing times  `[ ]`
 Type times directly in the month view, without opening the form each time. Not an Excel clone: a clean, modern look.
 - One row per day with inline time fields (arrival, lunch out, lunch in, departure) and an on-site toggle.

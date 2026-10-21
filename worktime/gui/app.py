@@ -11,6 +11,7 @@ from typing import Optional, Union
 from worktime import __version__, db
 from worktime.gui import logic, strings
 from worktime.gui.entry_form import EntryForm
+from worktime.gui.sqlite_editor import SqliteEditor
 from worktime.periods import MIN_ONSITE_PERCENT, month_range, summarize
 
 _COLUMNS = (
@@ -36,9 +37,11 @@ _ROW_COLORS = {
 
 
 class MainWindow:
-    def __init__(self, root: tk.Tk, con) -> None:
+    def __init__(self, root: tk.Tk, con, db_path: Union[str, Path] = db.DEFAULT_DB_PATH) -> None:
         self._root = root
         self._con = con
+        self._db_path = str(db_path)
+        self._editor: Optional[SqliteEditor] = None
         self._repo = db.EntryRepository(con)
         today = date.today()
         self._year = tk.IntVar(value=today.year)
@@ -78,7 +81,8 @@ class MainWindow:
         self._month_box.pack(side="left")
         ttk.Button(bar, text=strings.BUTTON_NEXT, width=3, command=lambda: self._step(1)).pack(side="left", padx=(10, 0))
         ttk.Button(bar, text=strings.BUTTON_TODAY, command=self._go_today).pack(side="left", padx=(10, 0))
-        ttk.Button(bar, text=strings.BUTTON_DELETE, command=self._delete_selected).pack(side="right")
+        ttk.Button(bar, text=strings.BUTTON_SQLITE_EDITOR, command=self._open_sqlite_editor).pack(side="right")
+        ttk.Button(bar, text=strings.BUTTON_DELETE, command=self._delete_selected).pack(side="right", padx=(0, 6))
         ttk.Button(bar, text=strings.BUTTON_EDIT, command=self._edit_selected).pack(side="right", padx=(0, 6))
         self._year_box.bind("<<ComboboxSelected>>", lambda _e: self.refresh())
         self._month_box.bind("<<ComboboxSelected>>", self._on_month_picked)
@@ -150,6 +154,18 @@ class MainWindow:
         self._month.set(self._month_box.current() + 1)
         self.refresh()
 
+    def _open_sqlite_editor(self) -> None:
+        if self._editor is not None and self._editor.winfo_exists():
+            self._editor.lift()
+            self._editor.focus_set()
+            return
+        self._editor = SqliteEditor(self._root, self._con, self._db_path, self._after_sql_change)
+
+    def _after_sql_change(self) -> None:
+        """Data may have changed through the editor: reload the table, and the year list."""
+        self._year_box["values"] = logic.year_choices(self._repo.list_all(), date.today())
+        self.refresh()
+
     def _selected_date(self) -> Optional[date]:
         selection = self._tree.selection()
         return date.fromisoformat(selection[0]) if selection else None
@@ -178,6 +194,6 @@ class MainWindow:
 def run(db_path: Union[str, Path] = db.DEFAULT_DB_PATH) -> None:
     con = db.connect(db_path)
     root = tk.Tk()
-    MainWindow(root, con)
+    MainWindow(root, con, db_path)
     root.mainloop()
     con.close()
