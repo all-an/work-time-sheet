@@ -148,8 +148,9 @@ class MainWindow:
         self._set_month(today.year, today.month)
 
     def _set_month(self, year: int, month: int) -> None:
-        years = set(self._year_box["values"]) | {year}
-        self._year_box["values"] = sorted(int(y) for y in years)
+        self._year_box["values"] = logic.year_choices(
+            self._repo.list_all(), date.today(), (*self._year_box["values"], year)
+        )
         self._year.set(year)
         self._month.set(month)
         self.refresh()
@@ -167,7 +168,9 @@ class MainWindow:
 
     def _after_sql_change(self) -> None:
         """Data may have changed through the editor: reload the table, and the year list."""
-        self._year_box["values"] = logic.year_choices(self._repo.list_all(), date.today())
+        self._year_box["values"] = logic.year_choices(
+            self._repo.list_all(), date.today(), (self._year.get(),)
+        )
         self.refresh()
 
     def _selected_date(self) -> Optional[date]:

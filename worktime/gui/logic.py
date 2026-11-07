@@ -8,7 +8,7 @@ import calendar
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from worktime.calc import DEFAULT_REQUIRED_MINUTES, calculate_day, format_minutes, parse_hhmm
 from worktime.gui import strings
@@ -61,10 +61,11 @@ def shift_month(year: int, month: int, delta: int) -> Tuple[int, int]:
     return index // 12, index % 12 + 1
 
 
-def year_choices(entries: Iterable[Entry], today: date) -> List[int]:
+def year_choices(entries: Iterable[Entry], today: date, extra_years: Iterable[Union[int, str]] = ()) -> List[int]:
     """Years offered by the year picker: every year with data, plus around today."""
     years = {today.year - 1, today.year, today.year + 1}
     years.update(entry.work_date.year for entry in entries)
+    years.update(int(y) for y in extra_years)
     return sorted(years)
 
 

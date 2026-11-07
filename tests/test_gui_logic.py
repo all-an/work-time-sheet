@@ -60,6 +60,10 @@ class DateAndTimeTests(unittest.TestCase):
         entries = [Entry(date(2023, 5, 1)), Entry(date(2026, 10, 1))]
         self.assertEqual(logic.year_choices(entries, date(2026, 10, 21)), [2023, 2025, 2026, 2027])
         self.assertEqual(logic.year_choices([], date(2026, 10, 21)), [2025, 2026, 2027])
+        self.assertEqual(
+            logic.year_choices([], date(2026, 10, 21), ("2025", "2026", "2027", 2026, 2024)),
+            [2024, 2025, 2026, 2027],
+        )
 
 
 class MonthRowsTests(unittest.TestCase):

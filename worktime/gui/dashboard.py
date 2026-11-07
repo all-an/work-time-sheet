@@ -135,10 +135,9 @@ class Dashboard(ttk.Frame):
 
     def refresh(self) -> None:
         """Recompute everything for the chosen period from the database."""
-        years = logic.year_choices(self._repo.list_all(), date.today())
-        if self._year.get() not in years:
-            years = sorted(set(years) | {self._year.get()})
-        self._year_box["values"] = years
+        self._year_box["values"] = logic.year_choices(
+            self._repo.list_all(), date.today(), (self._year.get(),)
+        )
 
         anchor = date(self._year.get(), self._month, 1)
         start, end = logic.period_bounds(self._kind, anchor)
