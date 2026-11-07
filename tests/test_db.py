@@ -185,6 +185,19 @@ class RepositoryTests(unittest.TestCase):
                 self.assertEqual(saved.debt_minutes, py.debt)
                 self.assertEqual(saved.exceeding_minutes, py.exceeding)
 
+    def test_backup_database_copies_entries_to_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "sub" / "backup.sqlite3"
+            result = db.backup_database(self.con, dest)
+            self.assertEqual(result, dest)
+            self.assertTrue(dest.exists())
+            backup_con = sqlite3.connect(str(dest))
+            try:
+                copied = db.EntryRepository(backup_con).list_all()
+                self.assertEqual(len(copied), 32)
+            finally:
+                backup_con.close()
+
 
 if __name__ == "__main__":
     unittest.main()

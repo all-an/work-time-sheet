@@ -64,7 +64,7 @@ Tkinter main window where you navigate **year -> month -> days** to enter data.
 ## Step 5c - Dashboard tab  `[x]`
 "Dashboard" tab beside "Daily entries": pick Month, 6 months or Year, and see on-site days and percentage with the 50% target, the hours balance (worked, debt, exceeding, net), two pie charts (on-site vs remote days, debt vs exceeding hours) and a per-month breakdown table. This covers the figures planned for Steps 6-7, so those steps now only need polish.
 
-## Step 5b - Modern day grid for typing times  `[ ]`
+## Step 5b - Modern day grid for typing times  `[x]`
 Type times directly in the month view, without opening the form each time. Not an Excel clone: a clean, modern look.
 - One row per day with inline time fields (arrival, lunch out, lunch in, departure) and an on-site toggle.
 - Worked, debt and exceeding update as you type; invalid times are highlighted, and the day is saved when you leave the field or press Enter.
@@ -74,22 +74,22 @@ Type times directly in the month view, without opening the form each time. Not a
 
 **You run:** the app, fill a few days of the month by keyboard only, and check the totals.
 
-## Step 6 - Month report  `[ ]`
+## Step 6 - Month report  `[x]`
 A "Month" tab: pick month and year, see totals (worked, debt, exceeding, net balance), on-site days and percentage, and whether the 50% target is met.
 
 **You run:** the app, compare October 2026 with your sheet.
 
-## Step 7 - 6-month and year reports  `[ ]`
+## Step 7 - 6-month and year reports  `[x]`
 "6 months" and "Year" tabs with the same figures, plus a per-month breakdown inside the period.
 
 **You run:** the app, check the semester and year numbers.
 
-## Step 8 - Running balance of debt and exceeding hours  `[ ]`
+## Step 8 - Running balance of debt and exceeding hours  `[x]`
 Carry-over view: cumulative balance across months so you can see the total hours you owe or have in credit at any date.
 
 **You run:** the app, check the cumulative balance against your own count.
 
-## Step 9 - Polish  `[ ]`
+## Step 9 - Polish  `[x]`
 - Keyboard shortcuts, sensible defaults (today's date, last used required hours).
 - Warn on odd entries (e.g. arrival after lunch out).
 - Export a period to CSV.

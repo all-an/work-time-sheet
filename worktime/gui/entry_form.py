@@ -6,6 +6,7 @@ from datetime import date
 from tkinter import messagebox, ttk
 from typing import Callable, Optional
 
+from worktime.calc import DEFAULT_REQUIRED_MINUTES
 from worktime.db import EntryRepository
 from worktime.gui import logic, strings
 from worktime.models import Entry
@@ -19,6 +20,7 @@ class EntryForm(tk.Toplevel):
         work_date: date,
         entry: Optional[Entry],
         on_saved: Callable[[date], None],
+        default_required: int = DEFAULT_REQUIRED_MINUTES,
     ) -> None:
         super().__init__(parent)
         self._repo = repo
@@ -28,7 +30,7 @@ class EntryForm(tk.Toplevel):
         self.resizable(False, False)
         self.transient(parent)
 
-        entry = entry or Entry(work_date)
+        entry = entry or Entry(work_date, required_minutes=default_required)
         self._vars = {
             "date": tk.StringVar(value=logic.format_date(entry.work_date)),
             "arrival": tk.StringVar(value=entry.arrival or ""),

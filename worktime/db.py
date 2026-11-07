@@ -201,3 +201,15 @@ def to_day_record(entry: Entry) -> DayRecord:
             exceeding=entry.exceeding_minutes,
         ),
     )
+
+
+def backup_database(con: sqlite3.Connection, destination: Union[str, Path]) -> Path:
+    """Copy `con` safely to `destination` using SQLite's online backup API."""
+    target = Path(destination)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    dest_con = sqlite3.connect(str(target))
+    try:
+        con.backup(dest_con)
+    finally:
+        dest_con.close()
+    return target

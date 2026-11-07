@@ -145,6 +145,21 @@ class RunScriptTests(unittest.TestCase):
         [result] = sql_runner.run_script(con, "SELECT SUM(x) FROM t")
         self.assertEqual(result.rows, [(3,)])
 
+    def test_list_tables_and_select_table_sql(self):
+        tables = sql_runner.list_tables(self.con)
+        self.assertEqual([t.name for t in tables], ["entries"])
+        col_names = [c[0] for c in tables[0].columns]
+        self.assertIn("work_date", col_names)
+        self.assertIn("worked_minutes", col_names)
+
+        self.con.execute('CREATE TABLE "my table" (id INTEGER, label TEXT)')
+        tables = sql_runner.list_tables(self.con)
+        self.assertEqual([t.name for t in tables], ["entries", "my table"])
+        self.assertEqual(sql_runner.select_table_sql("entries"), "SELECT * FROM entries;")
+        self.assertEqual(sql_runner.select_table_sql("my table"), 'SELECT * FROM "my table";')
+        [res] = sql_runner.run_script(self.con, sql_runner.select_table_sql("my table"))
+        self.assertEqual(res.columns, ["id", "label"])
+
 
 if __name__ == "__main__":
     unittest.main()

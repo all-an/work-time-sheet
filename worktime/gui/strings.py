@@ -9,12 +9,28 @@ LABEL_MONTH = "Month"
 BUTTON_PREVIOUS = "◀"
 BUTTON_NEXT = "▶"
 BUTTON_TODAY = "Today"
+BUTTON_ADD_YEAR = "Add year"
 BUTTON_EDIT = "Edit day"
 BUTTON_DELETE = "Delete day"
 BUTTON_SAVE = "Save"
 BUTTON_CANCEL = "Cancel"
 
 BUTTON_SQLITE_EDITOR = "Sqlite Editor"
+BUTTON_BACKUP = "Backup DB"
+BUTTON_EXPORT_CSV = "Export CSV"
+BUTTON_IMPORT_WEEK_CSV = "Import week CSV"
+
+BACKUP_TITLE = "Backup database"
+BACKUP_DONE = "Database backed up to:\n{path}"
+EXPORT_TITLE = "Export period to CSV"
+EXPORT_DONE = "Exported {count} day(s) to:\n{path}"
+IMPORT_WEEK_TITLE = "Import week CSV"
+IMPORT_WEEK_DONE = "Imported {count} day(s) for week of {monday} to {friday}."
+CSV_FILES = "CSV files"
+
+SITE_BADGE_ONSITE = "On-site"
+SITE_BADGE_REMOTE = "Remote"
+GRID_HINT = "Tip: type HH:MM directly. Tab/Enter moves next, ↑/↓ moves between days, Space toggles On-site, Double-click Date for full form."
 
 EDITOR_TITLE = "Sqlite Editor"
 EDITOR_DATABASE = "Database: {path}"
@@ -33,6 +49,8 @@ EDITOR_FILE_ERROR = "Cannot open the file"
 EDITOR_SQL_FILES = "SQL files"
 EDITOR_DB_FILES = "SQLite databases"
 EDITOR_ALL_FILES = "All files"
+EDITOR_TABLES_HEADER = "EXPLORER: TABLES"
+EDITOR_NO_TABLES = "(no tables)"
 
 COLUMN_DATE = "Date"
 COLUMN_DAY = "Day"
@@ -107,5 +125,35 @@ STAT_WORKED = "Worked"
 STAT_DEBT = "Debt"
 STAT_EXCEEDING = "Exceeding"
 STAT_BALANCE = "Net balance"
+STAT_CUMULATIVE = "Cumulative balance"
 
 BREAKDOWN_COLUMNS = ("Month", "Days", "On-site / remote", "On-site %", "Worked", "Debt", "Exceeding", "Balance")
+DASH_BREAKDOWN_COLUMNS = (*BREAKDOWN_COLUMNS, "Cumulative")
+CSV_COLUMNS = (
+    "Date", "Arrival", "Lunch out", "Lunch in", "Departure",
+    "Required", "On-site", "Exact times", "Worked", "Debt", "Exceeding", "Note",
+)
+
+TAB_PROJECTION = "Projection"
+PROJ_ONSITE_CARD = "6-Month On-Site Projection"
+PROJ_HOURS_CARD = "6-Month Daily Hours Projection"
+PROJ_WEEKLY_TABLE = "Remaining Weekly Plan (until end of 6-month period)"
+PROJ_WORKED_SO_FAR = "Completed days so far"
+PROJ_REMAINING_DAYS = "Remaining workdays (Mon-Fri)"
+PROJ_TOTAL_PROJECTED = "Projected semester total"
+PROJ_ONSITE_NEEDED = "On-site days still needed"
+PROJ_ONSITE_PACE = "Suggested on-site pace"
+PROJ_CURRENT_BALANCE = "Current semester balance"
+PROJ_EXTRA_PER_DAY = "Extra time needed per day"
+PROJ_DAILY_TARGET = "Suggested daily work time"
+PROJ_WEEKLY_TARGET = "Suggested weekly work time"
+PROJ_SCHEDULE = "Suggested daily schedule"
+PROJ_COLUMNS = (
+    "Week (Mon-Fri)",
+    "Workdays",
+    "Suggested On-site / Remote",
+    "Daily Work Time",
+    "Weekly Hours",
+    "Projected On-site %",
+    "Projected Balance",
+)

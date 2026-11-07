@@ -9,7 +9,7 @@ import sqlite3
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 from worktime import sql_runner
 from worktime.gui import strings
@@ -31,15 +31,17 @@ class SqliteEditor(tk.Toplevel):
         self._con = program_con
         self._path = self._program_path
         self._other_con: Optional[sqlite3.Connection] = None
+        self._item_to_table: Dict[str, str] = {}
 
         self.title(strings.EDITOR_TITLE)
-        self.geometry("920x640")
-        self.minsize(640, 400)
+        self.geometry("1040x660")
+        self.minsize(740, 420)
 
         self._db_label = tk.StringVar()
         self._status = tk.StringVar()
         self._build()
         self._update_db_label()
+        self._refresh_tables()
         self.protocol("WM_DELETE_WINDOW", self._close)
 
     # -- layout -----------------------------------------------------------
@@ -58,8 +60,34 @@ class SqliteEditor(tk.Toplevel):
 
         ttk.Label(self, textvariable=self._db_label, padding=(8, 0)).pack(fill="x")
 
-        panes = ttk.PanedWindow(self, orient="vertical")
-        panes.pack(fill="both", expand=True, padx=8, pady=6)
+        workspace = ttk.PanedWindow(self, orient="horizontal")
+        workspace.pack(fill="both", expand=True, padx=8, pady=6)
+
+        # Left sidebar: VS Code Explorer-style tables tree
+        sidebar = ttk.Frame(workspace)
+        ttk.Label(
+            sidebar,
+            text=strings.EDITOR_TABLES_HEADER,
+            font=("Segoe UI", 9, "bold"),
+            foreground="#475569",
+            padding=(6, 4),
+        ).pack(fill="x")
+        tree_wrap = ttk.Frame(sidebar)
+        tree_wrap.pack(fill="both", expand=True)
+        self._tables_tree = ttk.Treeview(tree_wrap, show="tree", selectmode="browse")
+        self._tables_tree.column("#0", width=210, minwidth=140, stretch=True)
+        sidebar_scroll = ttk.Scrollbar(tree_wrap, orient="vertical", command=self._tables_tree.yview)
+        self._tables_tree.configure(yscrollcommand=sidebar_scroll.set)
+        self._tables_tree.pack(side="left", fill="both", expand=True)
+        sidebar_scroll.pack(side="right", fill="y")
+        self._tables_tree.bind("<<TreeviewSelect>>", self._on_table_selected)
+        self._tables_tree.bind("<Double-1>", self._on_table_selected)
+        self._tables_tree.bind("<Return>", self._on_table_selected)
+        workspace.add(sidebar, weight=1)
+
+        # Right pane: SQL editor on top, query results on bottom
+        panes = ttk.PanedWindow(workspace, orient="vertical")
+        workspace.add(panes, weight=4)
 
         editor_frame = ttk.Frame(panes)
         self._text = tk.Text(editor_frame, height=10, wrap="none", undo=True, font=("Consolas", 11))
@@ -87,6 +115,40 @@ class SqliteEditor(tk.Toplevel):
         self._status_label.pack(fill="x")
         ttk.Label(self, text=strings.EDITOR_HINT, foreground="#777777", padding=(8, 0, 8, 8)).pack(fill="x")
         self._text.focus_set()
+
+    # -- sidebar explorer -------------------------------------------------
+
+    def _refresh_tables(self) -> None:
+        """Populate the left sidebar with all tables and columns of the active database."""
+        self._tables_tree.delete(*self._tables_tree.get_children())
+        self._item_to_table.clear()
+        try:
+            tables = sql_runner.list_tables(self._con)
+        except sqlite3.Error:
+            tables = []
+        if not tables:
+            self._tables_tree.insert("", "end", text=strings.EDITOR_NO_TABLES)
+            return
+        for table in tables:
+            table_node = self._tables_tree.insert("", "end", text=f"⊞ {table.name}", open=True)
+            self._item_to_table[table_node] = table.name
+            for col_name, col_type in table.columns:
+                col_node = self._tables_tree.insert(
+                    table_node, "end", text=f"{col_name} ({col_type})"
+                )
+                self._item_to_table[col_node] = table.name
+
+    def _on_table_selected(self, _event) -> None:
+        selection = self._tables_tree.selection()
+        if not selection:
+            return
+        table_name = self._item_to_table.get(selection[0])
+        if not table_name:
+            return
+        sql = sql_runner.select_table_sql(table_name)
+        self._text.delete("1.0", "end")
+        self._text.insert("1.0", sql)
+        self._run()
 
     # -- database and file choice ----------------------------------------
 
@@ -130,11 +192,13 @@ class SqliteEditor(tk.Toplevel):
         self._other_con = con
         self._con, self._path = con, path
         self._update_db_label()
+        self._refresh_tables()
 
     def _use_program_database(self) -> None:
         self._close_other()
         self._con, self._path = self._program_con, self._program_path
         self._update_db_label()
+        self._refresh_tables()
 
     def _close_other(self) -> None:
         if self._other_con is not None:
@@ -169,8 +233,10 @@ class SqliteEditor(tk.Toplevel):
             return
         self._show_result(sql_runner.last_result_set(results))
         self._show_status(sql_runner.summary(results), error=False)
-        if writes and self._con is self._program_con:
-            self._on_changed()
+        if writes:
+            self._refresh_tables()
+            if self._con is self._program_con:
+                self._on_changed()
 
     def _show_status(self, text: str, error: bool) -> None:
         self._status.set(text)

@@ -107,3 +107,44 @@ def summary(results: List[StatementResult]) -> str:
 def last_result_set(results: List[StatementResult]) -> Optional[StatementResult]:
     """The last statement that returned columns (a SELECT), if any."""
     return next((r for r in reversed(results) if r.columns), None)
+
+
+_SIMPLE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+@dataclass(frozen=True)
+class TableInfo:
+    """One table of a SQLite database and its (column_name, column_type) pairs."""
+
+    name: str
+    columns: Tuple[Tuple[str, str], ...] = ()
+
+
+def quote_identifier(name: str) -> str:
+    """Return `name` as-is if it is a simple identifier, otherwise double-quoted."""
+    if _SIMPLE_IDENTIFIER.match(name):
+        return name
+    escaped = name.replace('"', '""')
+    return f'"{escaped}"'
+
+
+def select_table_sql(table_name: str) -> str:
+    """Build a SELECT * query for `table_name`."""
+    return f"SELECT * FROM {quote_identifier(table_name)};"
+
+
+def list_tables(con: sqlite3.Connection) -> List[TableInfo]:
+    """List user tables in `con` in alphabetical order, including their columns."""
+    rows = con.execute(
+        "SELECT name FROM sqlite_master "
+        "WHERE type = 'table' AND name NOT LIKE 'sqlite_%' "
+        "ORDER BY name"
+    ).fetchall()
+    tables: List[TableInfo] = []
+    for row in rows:
+        name = row[0]
+        escaped = name.replace('"', '""')
+        col_rows = con.execute(f'PRAGMA table_xinfo("{escaped}")').fetchall()
+        cols = tuple(( str(c[1]), str(c[2] or "ANY") ) for c in col_rows)
+        tables.append(TableInfo(name=name, columns=cols))
+    return tables
