@@ -41,6 +41,7 @@ class Entry:
     worked_minutes: Optional[int] = None
     debt_minutes: Optional[int] = None
     exceeding_minutes: Optional[int] = None
+    vacation: bool = False
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,7 @@ class DayRecord:
     work_date: date
     on_site: bool
     summary: DaySummary
+    vacation: bool = False
 
 
 @dataclass(frozen=True)

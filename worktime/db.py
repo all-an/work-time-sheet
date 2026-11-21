@@ -70,7 +70,7 @@ def connect(path: Union[str, Path] = DEFAULT_DB_PATH) -> sqlite3.Connection:
 
 _COLUMNS = (
     "id, work_date, arrival, lunch_out, lunch_in, departure, required_minutes, "
-    "on_site, exact_times, note, worked_minutes, debt_minutes, exceeding_minutes"
+    "on_site, exact_times, note, worked_minutes, debt_minutes, exceeding_minutes, vacation"
 )
 
 
@@ -89,6 +89,7 @@ def _to_entry(row: sqlite3.Row) -> Entry:
         worked_minutes=row["worked_minutes"],
         debt_minutes=row["debt_minutes"],
         exceeding_minutes=row["exceeding_minutes"],
+        vacation=bool(row["vacation"]),
     )
 
 
@@ -111,6 +112,7 @@ def _checked(entry: Entry) -> tuple:
         int(entry.on_site),
         int(entry.exact_times),
         _blank_to_none(entry.note),
+        int(entry.vacation),
     )
 
 
@@ -127,7 +129,7 @@ class EntryRepository:
             with self._con:
                 cursor = self._con.execute(
                     "INSERT INTO entries (work_date, arrival, lunch_out, lunch_in, departure, "
-                    "required_minutes, on_site, exact_times, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "required_minutes, on_site, exact_times, note, vacation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     values,
                 )
         except sqlite3.IntegrityError as error:
@@ -142,7 +144,7 @@ class EntryRepository:
             with self._con:
                 cursor = self._con.execute(
                     "UPDATE entries SET work_date = ?, arrival = ?, lunch_out = ?, lunch_in = ?, "
-                    "departure = ?, required_minutes = ?, on_site = ?, exact_times = ?, note = ? "
+                    "departure = ?, required_minutes = ?, on_site = ?, exact_times = ?, note = ?, vacation = ? "
                     "WHERE id = ?",
                     values + (entry.id,),
                 )
@@ -189,7 +191,8 @@ class EntryRepository:
 
 def to_day_record(entry: Entry) -> DayRecord:
     """Build a DayRecord from the database-calculated columns of an entry."""
-    complete = entry.worked_minutes is not None
+    # A vacation day never counts as a worked day, whatever times it holds.
+    complete = entry.worked_minutes is not None and not entry.vacation
     return DayRecord(
         work_date=entry.work_date,
         on_site=entry.on_site,
@@ -200,6 +203,7 @@ def to_day_record(entry: Entry) -> DayRecord:
             debt=entry.debt_minutes,
             exceeding=entry.exceeding_minutes,
         ),
+        vacation=entry.vacation,
     )
 
 

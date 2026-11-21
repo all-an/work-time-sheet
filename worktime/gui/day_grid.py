@@ -39,6 +39,24 @@ FONT_CELL = ("Segoe UI", 10)
 FONT_BOLD = ("Segoe UI", 10, "bold")
 FONT_BADGE = ("Segoe UI", 9, "bold")
 
+BADGE_VACATION_BG = "#fef3c7"
+BADGE_VACATION_FG = "#b45309"
+BG_ROW_VACATION = "#fffbeb"
+
+# Shared by the header and every row so all columns line up: (min pixel width, weight).
+COL_DATE, COL_DAY, COL_ARRIVAL, COL_LUNCH_OUT, COL_LUNCH_IN, COL_DEPARTURE = range(6)
+COL_SITE, COL_WORKED, COL_DEBT, COL_EXCEEDING, COL_VACATION, COL_NOTE, COL_ACTION = range(6, 13)
+GRID_COLUMNS = (
+    (90, 0), (50, 0), (72, 0), (72, 0), (72, 0), (72, 0),
+    (84, 0), (76, 0), (76, 0), (86, 0), (90, 0), (160, 1), (130, 0),
+)
+CELL_PADX = 3
+
+
+def configure_columns(frame: tk.Misc) -> None:
+    for idx, (minsize, weight) in enumerate(GRID_COLUMNS):
+        frame.grid_columnconfigure(idx, minsize=minsize, weight=weight, uniform="")
+
 
 class _RowWidgets:
     """Holds the Tkinter variables and widgets for a single calendar day row."""
@@ -73,6 +91,7 @@ class _RowWidgets:
         }
         self.note_var = tk.StringVar(value=entry.note or "" if entry else "")
         self.on_site = bool(entry.on_site) if entry else False
+        self.vacation = bool(entry.vacation) if entry else False
 
         self.worked_var = tk.StringVar()
         self.debt_var = tk.StringVar()
@@ -83,17 +102,18 @@ class _RowWidgets:
 
         self.frame = tk.Frame(parent, bg=base_bg, pady=3, padx=4, highlightthickness=1, highlightbackground="#e2e8f0")
         self.frame.pack(fill="x", padx=2, pady=1)
+        configure_columns(self.frame)
 
         self.date_lbl = tk.Label(
-            self.frame, text=logic.format_date(self.work_date), width=11, anchor="w",
+            self.frame, text=logic.format_date(self.work_date), width=1, anchor="w",
             bg=base_bg, fg=fg_date, font=FONT_CELL, cursor="hand2",
         )
-        self.date_lbl.pack(side="left", padx=(4, 2))
+        self.date_lbl.grid(row=0, column=COL_DATE, sticky="ew", padx=CELL_PADX)
         self.day_lbl = tk.Label(
-            self.frame, text=day_row.weekday, width=5, anchor="w",
+            self.frame, text=day_row.weekday, width=1, anchor="w",
             bg=base_bg, fg=fg_date, font=FONT_CELL, cursor="hand2",
         )
-        self.day_lbl.pack(side="left", padx=2)
+        self.day_lbl.grid(row=0, column=COL_DAY, sticky="ew", padx=CELL_PADX)
 
         for lbl in (self.frame, self.date_lbl, self.day_lbl):
             lbl.bind("<Button-1>", lambda _e: self._select())
@@ -105,11 +125,11 @@ class _RowWidgets:
         for col_idx, field in enumerate(logic.TIME_FIELDS):
             var = self.time_vars[field]
             ent = tk.Entry(
-                self.frame, textvariable=var, width=7, justify="center",
+                self.frame, textvariable=var, width=1, justify="center",
                 font=FONT_CELL, relief="solid", bd=1,
                 bg="#ffffff", fg=FG_DEFAULT,
             )
-            ent.pack(side="left", padx=4)
+            ent.grid(row=0, column=COL_ARRIVAL + col_idx, sticky="ew", padx=CELL_PADX)
             var.trace_add("write", lambda *_a: self._on_typed())
             ent.bind("<FocusIn>", lambda _e: self._select())
             ent.bind("<FocusOut>", lambda _e: self._commit())
@@ -120,10 +140,10 @@ class _RowWidgets:
             self.focus_order.append(ent)
 
         self.badge = tk.Label(
-            self.frame, width=8, anchor="center", font=FONT_BADGE,
+            self.frame, width=1, anchor="center", font=FONT_BADGE,
             cursor="hand2", padx=4, pady=1, takefocus=1,
         )
-        self.badge.pack(side="left", padx=6)
+        self.badge.grid(row=0, column=COL_SITE, sticky="ew", padx=CELL_PADX)
         self.badge.bind("<Button-1>", lambda _e: self._toggle_site())
         self.badge.bind("<space>", lambda _e: self._toggle_site())
         self.badge.bind("<Return>", lambda _e: self._toggle_site())
@@ -131,26 +151,37 @@ class _RowWidgets:
         self.focus_order.append(self.badge)
 
         self.worked_lbl = tk.Label(
-            self.frame, textvariable=self.worked_var, width=8, anchor="center",
+            self.frame, textvariable=self.worked_var, width=1, anchor="center",
             bg=base_bg, fg=FG_DEFAULT, font=FONT_BOLD,
         )
-        self.worked_lbl.pack(side="left", padx=3)
+        self.worked_lbl.grid(row=0, column=COL_WORKED, sticky="ew", padx=CELL_PADX)
         self.debt_lbl = tk.Label(
-            self.frame, textvariable=self.debt_var, width=8, anchor="center",
+            self.frame, textvariable=self.debt_var, width=1, anchor="center",
             bg=base_bg, fg=FG_DEBT, font=FONT_BOLD,
         )
-        self.debt_lbl.pack(side="left", padx=3)
+        self.debt_lbl.grid(row=0, column=COL_DEBT, sticky="ew", padx=CELL_PADX)
         self.exceeding_lbl = tk.Label(
-            self.frame, textvariable=self.exceeding_var, width=9, anchor="center",
+            self.frame, textvariable=self.exceeding_var, width=1, anchor="center",
             bg=base_bg, fg=FG_EXCEEDING, font=FONT_BOLD,
         )
-        self.exceeding_lbl.pack(side="left", padx=3)
+        self.exceeding_lbl.grid(row=0, column=COL_EXCEEDING, sticky="ew", padx=CELL_PADX)
+
+        self.vacation_btn = tk.Label(
+            self.frame, text=strings.COLUMN_VACATION, width=1, anchor="center", font=FONT_BADGE,
+            cursor="hand2", padx=4, pady=1, takefocus=1,
+        )
+        self.vacation_btn.grid(row=0, column=COL_VACATION, sticky="ew", padx=CELL_PADX)
+        self.vacation_btn.bind("<Button-1>", lambda _e: self._toggle_vacation())
+        self.vacation_btn.bind("<space>", lambda _e: self._toggle_vacation())
+        self.vacation_btn.bind("<Return>", lambda _e: self._toggle_vacation())
+        self.vacation_btn.bind("<FocusIn>", lambda _e: self._select())
+        self.focus_order.append(self.vacation_btn)
 
         self.note_entry = tk.Entry(
             self.frame, textvariable=self.note_var, font=FONT_CELL,
             relief="solid", bd=1, bg="#ffffff", fg=FG_DEFAULT,
         )
-        self.note_entry.pack(side="left", fill="x", expand=True, padx=(6, 4))
+        self.note_entry.grid(row=0, column=COL_NOTE, sticky="ew", padx=CELL_PADX)
         self.note_var.trace_add("write", lambda *_a: self._on_typed())
         self.note_entry.bind("<FocusIn>", lambda _e: self._select())
         self.note_entry.bind("<FocusOut>", lambda _e: self._commit())
@@ -165,15 +196,18 @@ class _RowWidgets:
                 text=strings.BUTTON_IMPORT_WEEK_CSV,
                 command=lambda: on_import_week(self.work_date),
             )
-            self.import_btn.pack(side="right", padx=(4, 2))
+            self.import_btn.grid(row=0, column=COL_ACTION, sticky="e", padx=CELL_PADX)
 
         self._update_badge()
+        self._update_vacation_btn()
         self._building = False
         self.evaluate()
 
     def _base_bg(self, state: str) -> str:
         if self._selected:
             return BG_ROW_SELECTED
+        if state == "vacation":
+            return BG_ROW_VACATION
         if state == "open":
             return BG_ROW_OPEN
         if self.is_weekend:
@@ -196,6 +230,19 @@ class _RowWidgets:
             self.badge.configure(text=strings.SITE_BADGE_ONSITE, bg=BADGE_ONSITE_BG, fg=BADGE_ONSITE_FG)
         else:
             self.badge.configure(text=strings.SITE_BADGE_REMOTE, bg=BADGE_REMOTE_BG, fg=BADGE_REMOTE_FG)
+
+    def _update_vacation_btn(self) -> None:
+        if self.vacation:
+            self.vacation_btn.configure(bg=BADGE_VACATION_BG, fg=BADGE_VACATION_FG, relief="solid", bd=1)
+        else:
+            self.vacation_btn.configure(bg=BADGE_REMOTE_BG, fg=BADGE_REMOTE_FG, relief="flat", bd=1)
+
+    def _toggle_vacation(self) -> None:
+        self._select()
+        self.vacation = not self.vacation
+        self._update_vacation_btn()
+        self.evaluate()
+        self._commit()
 
     def _select(self) -> None:
         self._on_select(self.work_date)
@@ -222,6 +269,7 @@ class _RowWidgets:
             existing=self.existing,
             default_required=self.default_required,
             note=self.note_var.get(),
+            vacation=self.vacation,
         )
         for name, ent in self.entries.items():
             if name in state.invalid_fields:
@@ -230,7 +278,7 @@ class _RowWidgets:
                 ent.configure(bg="#ffffff", fg=FG_DEFAULT)
         worked_display = state.worked_text
         if state.warnings and worked_display:
-            worked_display = f"{worked_display} ⚠"
+            worked_display = f"{worked_display} Ã¢Å¡Â "
         self.worked_var.set(worked_display)
         self.debt_var.set(state.debt_text)
         self.exceeding_var.set(state.exceeding_text)
@@ -289,26 +337,29 @@ class DayGrid(ttk.Frame):
         self._build_canvas()
 
     def _build_header(self) -> None:
-        hdr = tk.Frame(self, bg=BG_HEADER, pady=6, padx=4)
-        hdr.pack(fill="x")
-        specs: Tuple[Tuple[str, int, str], ...] = (
-            (strings.COLUMN_DATE, 11, "w"),
-            (strings.COLUMN_DAY, 5, "w"),
-            (strings.COLUMN_ARRIVAL, 8, "center"),
-            (strings.COLUMN_LUNCH_OUT, 8, "center"),
-            (strings.COLUMN_LUNCH_IN, 8, "center"),
-            (strings.COLUMN_DEPARTURE, 8, "center"),
-            (strings.COLUMN_SITE, 9, "center"),
-            (strings.COLUMN_WORKED, 8, "center"),
-            (strings.COLUMN_DEBT, 8, "center"),
-            (strings.COLUMN_EXCEEDING, 9, "center"),
-            (strings.COLUMN_NOTE, 16, "w"),
+        # Same left inset as a row: row pack padx (2) + border (1) + row padx (4).
+        self._hdr = tk.Frame(self, bg=BG_HEADER, pady=6, padx=7)
+        self._hdr.pack(fill="x")
+        configure_columns(self._hdr)
+        specs = (
+            (COL_DATE, strings.COLUMN_DATE, "w"),
+            (COL_DAY, strings.COLUMN_DAY, "w"),
+            (COL_ARRIVAL, strings.COLUMN_ARRIVAL, "center"),
+            (COL_LUNCH_OUT, strings.COLUMN_LUNCH_OUT, "center"),
+            (COL_LUNCH_IN, strings.COLUMN_LUNCH_IN, "center"),
+            (COL_DEPARTURE, strings.COLUMN_DEPARTURE, "center"),
+            (COL_SITE, strings.COLUMN_SITE, "center"),
+            (COL_WORKED, strings.COLUMN_WORKED, "center"),
+            (COL_DEBT, strings.COLUMN_DEBT, "center"),
+            (COL_EXCEEDING, strings.COLUMN_EXCEEDING, "center"),
+            (COL_VACATION, strings.COLUMN_VACATION, "center"),
+            (COL_NOTE, strings.COLUMN_NOTE, "w"),
         )
-        for text, width, anchor in specs:
+        for col, text, anchor in specs:
             tk.Label(
-                hdr, text=text, width=width, anchor=anchor,
+                self._hdr, text=text, width=1, anchor=anchor,
                 bg=BG_HEADER, fg=FG_DEFAULT, font=FONT_HEADER,
-            ).pack(side="left", padx=3)
+            ).grid(row=0, column=col, sticky="ew", padx=CELL_PADX)
 
     def _build_canvas(self) -> None:
         container = ttk.Frame(self)
@@ -329,6 +380,9 @@ class DayGrid(ttk.Frame):
         self._canvas.configure(yscrollcommand=scroll.set)
         self._canvas.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
+        # Rows end where the scrollbar starts; give the header the same right inset.
+        self.update_idletasks()
+        self._hdr.grid_columnconfigure(len(GRID_COLUMNS), minsize=scroll.winfo_reqwidth())
         self._canvas.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
 
     def _on_mousewheel(self, event) -> None:
@@ -414,6 +468,7 @@ class DayGrid(ttk.Frame):
                 and rw.existing.departure == entry.departure
                 and rw.existing.on_site == entry.on_site
                 and rw.existing.note == entry.note
+                and rw.existing.vacation == entry.vacation
             ):
                 return
             saved = self._repo.update(entry)

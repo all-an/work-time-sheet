@@ -228,6 +228,7 @@ class MainWindow:
                             exact_times=entry.exact_times,
                             note=entry.note,
                             id=existing.id,
+                            vacation=existing.vacation,
                         )
                     )
                 else:

@@ -62,6 +62,7 @@ COLUMN_SITE = "On-site"
 COLUMN_WORKED = "Worked"
 COLUMN_DEBT = "Debt"
 COLUMN_EXCEEDING = "Exceeding"
+COLUMN_VACATION = "Vacation"
 COLUMN_NOTE = "Note"
 
 YES = "yes"

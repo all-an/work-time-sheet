@@ -134,6 +134,8 @@ class DayRow:
 def _state(entry: Optional[Entry]) -> str:
     if entry is None:
         return "empty"
+    if entry.vacation:
+        return "vacation"
     if entry.worked_minutes is None:
         return "open"
     if entry.debt_minutes:
@@ -269,6 +271,7 @@ def build_entry(
     exact_times: bool,
     note: Optional[str],
     entry_id: Optional[int] = None,
+    vacation: bool = False,
 ) -> Entry:
     """Turn the form fields into a validated Entry. Raises ValueError if invalid."""
     times = tuple(normalize_time(t) for t in (arrival, lunch_out, lunch_in, departure))
@@ -286,6 +289,7 @@ def build_entry(
         exact_times=exact_times,
         note=(note or "").strip() or None,
         id=entry_id,
+        vacation=vacation,
     )
     calculate_day(*times, entry.required_minutes)  # checks the order of the times
     return entry
@@ -317,6 +321,7 @@ def validate_inline_day(
     existing: Optional[Entry] = None,
     default_required: int = DEFAULT_REQUIRED_MINUTES,
     note: Optional[str] = None,
+    vacation: bool = False,
 ) -> InlineDayState:
     """Validate inline grid fields for `work_date` and compute live cell values."""
     normalized = [normalize_time(t) for t in (arrival, lunch_out, lunch_in, departure)]
@@ -368,7 +373,7 @@ def validate_inline_day(
             entry_to_save=None,
         )
 
-    if all(t is None for t in normalized) and clean_note is None and not on_site:
+    if all(t is None for t in normalized) and clean_note is None and not on_site and not vacation:
         return InlineDayState(
             valid=True,
             empty=True,
@@ -384,7 +389,11 @@ def validate_inline_day(
 
     day = calculate_day(*normalized, required=required)
     warnings = tuple(entry_warnings(*normalized, required=required))
-    if not day.complete:
+    if vacation:
+        state = "vacation"
+        worked_str = debt_str = exceeding_str = ""
+        warnings = ()
+    elif not day.complete:
         state = "open"
         worked_str = strings.OPEN_DAY
         debt_str = ""
@@ -414,6 +423,7 @@ def validate_inline_day(
         worked_minutes=day.worked,
         debt_minutes=day.debt,
         exceeding_minutes=day.exceeding,
+        vacation=vacation,
     )
     return InlineDayState(
         valid=True,
@@ -506,7 +516,7 @@ def cumulative_balance(records: Iterable[DayRecord], end: date) -> int:
     """Running net balance (exceeding - debt) of all completed days up to `end` (inclusive)."""
     total = 0
     for record in records:
-        if record.work_date <= end and record.summary.complete:
+        if record.work_date <= end and record.summary.complete and not record.vacation:
             total += (record.summary.exceeding or 0) - (record.summary.debt or 0)
     return total
 
@@ -686,12 +696,14 @@ def build_semester_projection(
     completed_dates = {
         r.work_date for r in record_list if start <= r.work_date <= end and r.summary.complete
     }
+    # Vacation days are not workdays: they are neither worked nor left to work.
+    vacation_dates = {r.work_date for r in record_list if r.vacation}
 
     remaining_days: List[date] = []
     if today <= end:
         cursor = max(start, today)
         while cursor <= end:
-            if cursor.weekday() < 5 and cursor not in completed_dates:
+            if cursor.weekday() < 5 and cursor not in completed_dates and cursor not in vacation_dates:
                 remaining_days.append(cursor)
             cursor += timedelta(days=1)
 
