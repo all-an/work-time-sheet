@@ -13,6 +13,7 @@ from worktime.gui import logic, strings
 from worktime.gui.dashboard import Dashboard
 from worktime.gui.day_grid import DayGrid
 from worktime.gui.entry_form import EntryForm
+from worktime.gui.icon import apply_clock_icon, set_windows_app_id
 from worktime.gui.projection import ProjectionTab
 from worktime.gui.sqlite_editor import SqliteEditor
 from worktime.periods import MIN_ONSITE_PERCENT, month_range, summarize
@@ -34,6 +35,7 @@ class MainWindow:
         self._target = tk.StringVar()
 
         root.title(f"{strings.APP_TITLE} v{__version__}")
+        self._icons = apply_clock_icon(root)
         root.geometry("1080x760")
         root.minsize(960, 540)
 
@@ -229,6 +231,7 @@ class MainWindow:
                             note=entry.note,
                             id=existing.id,
                             vacation=existing.vacation,
+                            holiday=existing.holiday,
                         )
                     )
                 else:
@@ -287,6 +290,7 @@ class MainWindow:
 
 
 def run(db_path: Union[str, Path] = db.DEFAULT_DB_PATH) -> None:
+    set_windows_app_id()
     con = db.connect(db_path)
     root = tk.Tk()
     MainWindow(root, con, db_path)

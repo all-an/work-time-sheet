@@ -61,7 +61,7 @@ def summarize(
     """Sum the completed days between start and end (both inclusive)."""
     days = onsite = worked = debt = exceeding = 0
     for record in records:
-        if not (start <= record.work_date <= end) or not record.summary.complete or record.vacation:
+        if not (start <= record.work_date <= end) or not record.summary.complete or record.vacation or record.holiday:
             continue
         days += 1
         onsite += 1 if record.on_site else 0

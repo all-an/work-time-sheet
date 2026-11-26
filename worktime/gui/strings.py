@@ -62,8 +62,13 @@ COLUMN_SITE = "On-site"
 COLUMN_WORKED = "Worked"
 COLUMN_DEBT = "Debt"
 COLUMN_EXCEEDING = "Exceeding"
+COLUMN_EXTRA = "Extra"
 COLUMN_VACATION = "Vacation"
+COLUMN_HOLIDAY = "Holiday"
 COLUMN_NOTE = "Note"
+
+EXTRA_MODAL_TITLE = "Extra — {date}"
+EXTRA_MODAL_HINT = "Marked days are ignored in totals, dashboard and projection:"
 
 YES = "yes"
 NO = "no"

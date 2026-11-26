@@ -43,6 +43,7 @@ class EntryForm(tk.Toplevel):
         self._on_site = tk.BooleanVar(value=entry.on_site)
         self._exact = tk.BooleanVar(value=entry.exact_times)
         self._vacation = tk.BooleanVar(value=entry.vacation)
+        self._holiday = tk.BooleanVar(value=entry.holiday)
         self._preview = tk.StringVar()
 
         body = ttk.Frame(self, padding=16)
@@ -72,15 +73,18 @@ class EntryForm(tk.Toplevel):
         ttk.Checkbutton(body, text=strings.COLUMN_VACATION, variable=self._vacation).grid(
             row=next_row + 2, column=0, columnspan=2, sticky="w", pady=3
         )
-        ttk.Label(body, text=strings.FIELD_NOTE).grid(row=next_row + 3, column=0, sticky="w", pady=3)
+        ttk.Checkbutton(body, text=strings.COLUMN_HOLIDAY, variable=self._holiday).grid(
+            row=next_row + 3, column=0, columnspan=2, sticky="w", pady=3
+        )
+        ttk.Label(body, text=strings.FIELD_NOTE).grid(row=next_row + 4, column=0, sticky="w", pady=3)
         ttk.Entry(body, textvariable=self._vars["note"], width=32).grid(
-            row=next_row + 3, column=1, sticky="w", padx=(12, 0), pady=3
+            row=next_row + 4, column=1, sticky="w", padx=(12, 0), pady=3
         )
         ttk.Label(body, textvariable=self._preview, wraplength=340).grid(
-            row=next_row + 4, column=0, columnspan=2, sticky="w", pady=(10, 4)
+            row=next_row + 5, column=0, columnspan=2, sticky="w", pady=(10, 4)
         )
         buttons = ttk.Frame(body)
-        buttons.grid(row=next_row + 5, column=0, columnspan=2, sticky="e", pady=(8, 0))
+        buttons.grid(row=next_row + 6, column=0, columnspan=2, sticky="e", pady=(8, 0))
         ttk.Button(buttons, text=strings.BUTTON_CANCEL, command=self.destroy).grid(row=0, column=0, padx=4)
         ttk.Button(buttons, text=strings.BUTTON_SAVE, command=self._save).grid(row=0, column=1)
 
@@ -107,6 +111,7 @@ class EntryForm(tk.Toplevel):
                 v["departure"].get(), v["required"].get(), self._on_site.get(), self._exact.get(),
                 v["note"].get(), entry_id=self._entry.id if self._entry else None,
                 vacation=self._vacation.get(),
+                holiday=self._holiday.get(),
             )
             saved = self._repo.update(entry) if self._entry else self._repo.add(entry)
         except ValueError as error:

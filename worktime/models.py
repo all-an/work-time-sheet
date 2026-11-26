@@ -42,6 +42,7 @@ class Entry:
     debt_minutes: Optional[int] = None
     exceeding_minutes: Optional[int] = None
     vacation: bool = False
+    holiday: bool = False
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ class DayRecord:
     on_site: bool
     summary: DaySummary
     vacation: bool = False
+    holiday: bool = False
 
 
 @dataclass(frozen=True)

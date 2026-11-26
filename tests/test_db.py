@@ -20,8 +20,8 @@ def memory_repo():
 class MigrateTests(unittest.TestCase):
     def test_empty_db_gets_all_migrations(self):
         con = sqlite3.connect(":memory:")
-        self.assertEqual(db.migrate(con), 3)
-        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 3)
+        self.assertEqual(db.migrate(con), 4)
+        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 4)
         self.assertEqual(con.execute("SELECT COUNT(*) FROM entries").fetchone()[0], 32)
 
     def test_running_twice_does_not_duplicate_seed(self):
@@ -219,3 +219,20 @@ class VacationTests(unittest.TestCase):
         with_vac = proj.remaining_workdays
         proj2 = logic.build_semester_projection(records[:1], date(2027, 1, 1), date(2027, 3, 1))
         self.assertEqual(with_vac, proj2.remaining_workdays - 2)  # Mar 2 and 3 are vacation
+
+    def test_holiday_excluded_from_summary_projection_and_balance(self):
+        from worktime.gui import logic
+        con, repo = memory_repo()
+        repo.add(Entry(date(2027, 3, 1), "09:00", "12:00", "13:00", "19:00", on_site=True))
+        repo.add(Entry(date(2027, 3, 2), "09:00", "12:00", "13:00", "19:00", on_site=True, holiday=True))
+        repo.add(Entry(date(2027, 3, 3), holiday=True))
+        self.assertTrue(repo.get(date(2027, 3, 2)).holiday)
+        self.assertTrue(repo.get(date(2027, 3, 3)).holiday)
+        records = repo.day_records(date(2027, 3, 1), date(2027, 3, 31))
+        s = summarize(records, date(2027, 3, 1), date(2027, 3, 31))
+        self.assertEqual((s.days_worked, s.onsite_days, s.exceeding), (1, 1, 60))
+        self.assertEqual(logic.cumulative_balance(records, date(2027, 3, 31)), 60)
+        proj = logic.build_semester_projection(records, date(2027, 1, 1), date(2027, 3, 1))
+        with_hol = proj.remaining_workdays
+        proj2 = logic.build_semester_projection(records[:1], date(2027, 1, 1), date(2027, 3, 1))
+        self.assertEqual(with_hol, proj2.remaining_workdays - 2)  # Mar 2 and 3 are holidays

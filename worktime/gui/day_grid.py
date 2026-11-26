@@ -41,11 +41,14 @@ FONT_BADGE = ("Segoe UI", 9, "bold")
 
 BADGE_VACATION_BG = "#fef3c7"
 BADGE_VACATION_FG = "#b45309"
+BADGE_HOLIDAY_BG = "#f3e8ff"
+BADGE_HOLIDAY_FG = "#6b21a8"
 BG_ROW_VACATION = "#fffbeb"
+BG_ROW_HOLIDAY = "#faf5ff"
 
 # Shared by the header and every row so all columns line up: (min pixel width, weight).
 COL_DATE, COL_DAY, COL_ARRIVAL, COL_LUNCH_OUT, COL_LUNCH_IN, COL_DEPARTURE = range(6)
-COL_SITE, COL_WORKED, COL_DEBT, COL_EXCEEDING, COL_VACATION, COL_NOTE, COL_ACTION = range(6, 13)
+COL_SITE, COL_WORKED, COL_DEBT, COL_EXCEEDING, COL_EXTRA, COL_NOTE, COL_ACTION = range(6, 13)
 GRID_COLUMNS = (
     (90, 0), (50, 0), (72, 0), (72, 0), (72, 0), (72, 0),
     (84, 0), (76, 0), (76, 0), (86, 0), (90, 0), (160, 1), (130, 0),
@@ -56,6 +59,71 @@ CELL_PADX = 3
 def configure_columns(frame: tk.Misc) -> None:
     for idx, (minsize, weight) in enumerate(GRID_COLUMNS):
         frame.grid_columnconfigure(idx, minsize=minsize, weight=weight, uniform="")
+
+
+class ExtraModal(tk.Toplevel):
+    """Modal opened from the Extra button on a day row to mark Vacation or Holiday."""
+
+    def __init__(
+        self,
+        parent: tk.Misc,
+        work_date: date,
+        vacation: bool,
+        holiday: bool,
+        on_apply: Callable[[bool, bool], None],
+    ) -> None:
+        super().__init__(parent)
+        self._on_apply = on_apply
+        self.title(strings.EXTRA_MODAL_TITLE.format(date=logic.format_date(work_date)))
+        self.resizable(False, False)
+        self.transient(parent)
+
+        self._vacation_var = tk.BooleanVar(value=vacation)
+        self._holiday_var = tk.BooleanVar(value=holiday)
+
+        body = ttk.Frame(self, padding=16)
+        body.grid(sticky="nsew")
+        ttk.Label(body, text=strings.EXTRA_MODAL_HINT).grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 8)
+        )
+        vac_cb = ttk.Checkbutton(
+            body,
+            text=strings.COLUMN_VACATION,
+            variable=self._vacation_var,
+            command=self._on_vacation_toggled,
+        )
+        vac_cb.grid(row=1, column=0, columnspan=2, sticky="w", pady=4)
+        hol_cb = ttk.Checkbutton(
+            body,
+            text=strings.COLUMN_HOLIDAY,
+            variable=self._holiday_var,
+            command=self._on_holiday_toggled,
+        )
+        hol_cb.grid(row=2, column=0, columnspan=2, sticky="w", pady=4)
+
+        buttons = ttk.Frame(body)
+        buttons.grid(row=3, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        ttk.Button(buttons, text=strings.BUTTON_CANCEL, command=self.destroy).grid(row=0, column=0, padx=4)
+        ttk.Button(buttons, text=strings.BUTTON_SAVE, command=self._save).grid(row=0, column=1)
+
+        self.bind("<Return>", lambda _e: self._save())
+        self.bind("<Escape>", lambda _e: self.destroy())
+        self.grab_set()
+        vac_cb.focus_set()
+
+    def _on_vacation_toggled(self) -> None:
+        if self._vacation_var.get():
+            self._holiday_var.set(False)
+
+    def _on_holiday_toggled(self) -> None:
+        if self._holiday_var.get():
+            self._vacation_var.set(False)
+
+    def _save(self) -> None:
+        vac = bool(self._vacation_var.get())
+        hol = bool(self._holiday_var.get())
+        self.destroy()
+        self._on_apply(vac, hol)
 
 
 class _RowWidgets:
@@ -92,6 +160,7 @@ class _RowWidgets:
         self.note_var = tk.StringVar(value=entry.note or "" if entry else "")
         self.on_site = bool(entry.on_site) if entry else False
         self.vacation = bool(entry.vacation) if entry else False
+        self.holiday = bool(entry.holiday) if entry else False
 
         self.worked_var = tk.StringVar()
         self.debt_var = tk.StringVar()
@@ -166,16 +235,16 @@ class _RowWidgets:
         )
         self.exceeding_lbl.grid(row=0, column=COL_EXCEEDING, sticky="ew", padx=CELL_PADX)
 
-        self.vacation_btn = tk.Label(
-            self.frame, text=strings.COLUMN_VACATION, width=1, anchor="center", font=FONT_BADGE,
+        self.extra_btn = tk.Label(
+            self.frame, text=strings.COLUMN_EXTRA, width=1, anchor="center", font=FONT_BADGE,
             cursor="hand2", padx=4, pady=1, takefocus=1,
         )
-        self.vacation_btn.grid(row=0, column=COL_VACATION, sticky="ew", padx=CELL_PADX)
-        self.vacation_btn.bind("<Button-1>", lambda _e: self._toggle_vacation())
-        self.vacation_btn.bind("<space>", lambda _e: self._toggle_vacation())
-        self.vacation_btn.bind("<Return>", lambda _e: self._toggle_vacation())
-        self.vacation_btn.bind("<FocusIn>", lambda _e: self._select())
-        self.focus_order.append(self.vacation_btn)
+        self.extra_btn.grid(row=0, column=COL_EXTRA, sticky="ew", padx=CELL_PADX)
+        self.extra_btn.bind("<Button-1>", lambda _e: self._open_extra_modal())
+        self.extra_btn.bind("<space>", lambda _e: self._open_extra_modal())
+        self.extra_btn.bind("<Return>", lambda _e: self._open_extra_modal())
+        self.extra_btn.bind("<FocusIn>", lambda _e: self._select())
+        self.focus_order.append(self.extra_btn)
 
         self.note_entry = tk.Entry(
             self.frame, textvariable=self.note_var, font=FONT_CELL,
@@ -199,7 +268,7 @@ class _RowWidgets:
             self.import_btn.grid(row=0, column=COL_ACTION, sticky="e", padx=CELL_PADX)
 
         self._update_badge()
-        self._update_vacation_btn()
+        self._update_extra_btn()
         self._building = False
         self.evaluate()
 
@@ -208,6 +277,8 @@ class _RowWidgets:
             return BG_ROW_SELECTED
         if state == "vacation":
             return BG_ROW_VACATION
+        if state == "holiday":
+            return BG_ROW_HOLIDAY
         if state == "open":
             return BG_ROW_OPEN
         if self.is_weekend:
@@ -231,16 +302,34 @@ class _RowWidgets:
         else:
             self.badge.configure(text=strings.SITE_BADGE_REMOTE, bg=BADGE_REMOTE_BG, fg=BADGE_REMOTE_FG)
 
-    def _update_vacation_btn(self) -> None:
+    def _update_extra_btn(self) -> None:
         if self.vacation:
-            self.vacation_btn.configure(bg=BADGE_VACATION_BG, fg=BADGE_VACATION_FG, relief="solid", bd=1)
+            self.extra_btn.configure(
+                text=strings.COLUMN_VACATION, bg=BADGE_VACATION_BG, fg=BADGE_VACATION_FG, relief="solid", bd=1
+            )
+        elif self.holiday:
+            self.extra_btn.configure(
+                text=strings.COLUMN_HOLIDAY, bg=BADGE_HOLIDAY_BG, fg=BADGE_HOLIDAY_FG, relief="solid", bd=1
+            )
         else:
-            self.vacation_btn.configure(bg=BADGE_REMOTE_BG, fg=BADGE_REMOTE_FG, relief="flat", bd=1)
+            self.extra_btn.configure(
+                text=strings.COLUMN_EXTRA, bg=BADGE_REMOTE_BG, fg=BADGE_REMOTE_FG, relief="flat", bd=1
+            )
 
-    def _toggle_vacation(self) -> None:
+    def _open_extra_modal(self) -> None:
         self._select()
-        self.vacation = not self.vacation
-        self._update_vacation_btn()
+        ExtraModal(
+            self.frame.winfo_toplevel(),
+            self.work_date,
+            self.vacation,
+            self.holiday,
+            self._apply_extra,
+        )
+
+    def _apply_extra(self, vacation: bool, holiday: bool) -> None:
+        self.vacation = vacation
+        self.holiday = holiday
+        self._update_extra_btn()
         self.evaluate()
         self._commit()
 
@@ -270,6 +359,7 @@ class _RowWidgets:
             default_required=self.default_required,
             note=self.note_var.get(),
             vacation=self.vacation,
+            holiday=self.holiday,
         )
         for name, ent in self.entries.items():
             if name in state.invalid_fields:
@@ -352,7 +442,7 @@ class DayGrid(ttk.Frame):
             (COL_WORKED, strings.COLUMN_WORKED, "center"),
             (COL_DEBT, strings.COLUMN_DEBT, "center"),
             (COL_EXCEEDING, strings.COLUMN_EXCEEDING, "center"),
-            (COL_VACATION, strings.COLUMN_VACATION, "center"),
+            (COL_EXTRA, strings.COLUMN_EXTRA, "center"),
             (COL_NOTE, strings.COLUMN_NOTE, "w"),
         )
         for col, text, anchor in specs:
@@ -469,6 +559,7 @@ class DayGrid(ttk.Frame):
                 and rw.existing.on_site == entry.on_site
                 and rw.existing.note == entry.note
                 and rw.existing.vacation == entry.vacation
+                and rw.existing.holiday == entry.holiday
             ):
                 return
             saved = self._repo.update(entry)

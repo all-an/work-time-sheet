@@ -313,6 +313,15 @@ class InlineGridAndPolishTests(unittest.TestCase):
         self.assertEqual(empty_day.state, "empty")
         self.assertIsNone(empty_day.entry_to_save)
 
+        holiday_day = logic.validate_inline_day(
+            date(2026, 10, 12), "", "", "", "", False, holiday=True
+        )
+        self.assertTrue(holiday_day.valid)
+        self.assertFalse(holiday_day.empty)
+        self.assertEqual(holiday_day.state, "holiday")
+        self.assertEqual((holiday_day.worked_text, holiday_day.debt_text, holiday_day.exceeding_text), ("", "", ""))
+        self.assertTrue(holiday_day.entry_to_save.holiday)
+
     def test_validate_inline_day_highlights_invalid_fields(self):
         bad_format = logic.validate_inline_day(
             date(2026, 10, 1), "09:00", "bad", "13:00", "17:00", False
@@ -372,6 +381,16 @@ class InlineGridAndPolishTests(unittest.TestCase):
         self.assertEqual(logic.default_csv_name(logic.PERIOD_MONTH, date(2026, 10, 1)), "worktime-2026-10.csv")
         self.assertEqual(logic.default_csv_name(logic.PERIOD_SEMESTER, date(2026, 7, 1)), "worktime-2026-H2.csv")
         self.assertEqual(logic.default_csv_name(logic.PERIOD_YEAR, date(2026, 1, 1)), "worktime-2026.csv")
+
+    def test_clock_icon_grid_builds_clock_face_and_hands(self):
+        from worktime.gui import icon
+        grid = icon.build_clock_grid(32)
+        self.assertEqual(len(grid), 32)
+        self.assertEqual(len(grid[0]), 32)
+        flat = {c for row in grid for c in row}
+        self.assertIn(icon.BG_OUTER, flat)
+        self.assertIn(icon.BG_FACE, flat)
+        self.assertIn(icon.FG_HAND, flat)
 
 
 class SemesterProjectionTests(unittest.TestCase):
